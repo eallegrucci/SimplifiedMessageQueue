@@ -1,0 +1,63 @@
+# Client-Server Simplified Message Queuing
+
+This program is a simplified message queueing program that
+allows a client to connect to different queues through a proxie
+queue and allows the client to put messages into these queues
+as well as listing and retrieving messages from the queues.
+
+
+# Usage
+
+To build both the client and server programs enter 'make' into the
+terminal command line.
+$ make
+
+Then open two different terminal windows and run the server in one
+and run the client in the other one.
+
+To run the server:
+$ ./server create queue <queue name>
+
+To run the client program:
+$ ./client <server IP address> <server port number>
+
+The server must be runnning before the client can connect to it.
+
+# Server commands
+
+To bind to another queue:
+
+server> bind <queue name> <queue IP address> <queue port number>
+
+A server can bind to one queue at a time by typing its name, its
+IP address, and its port number into the command line.
+
+Before the server can accept any messages from the client, it
+must bind to the queues it needs.  Once the user is done binding
+queues just return and the server will start listening for a client.
+
+# Client commands
+
+To put messages into a queue:
+
+client> put <queue name> <queue name> ... "message"
+
+A client can put a message into as many queues as desired by
+specifying the queue names in the command line.
+
+To retrieve a message from a queue:
+
+client> get <queue name>
+
+A client can only retrieve one message at a time from one queue.
+
+To see how many messages a queue has:
+
+client> list <queue name>
+
+A client can only list the number of message of one queue at a time.
+
+
+# Author
+
+Emma Allegrucci
