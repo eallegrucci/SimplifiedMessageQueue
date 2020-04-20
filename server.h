@@ -22,8 +22,8 @@
 
 class Server {
 	std::string _name;
-	MessageQueue _queue;
-	Exchange _proxieQueue;
+	MessageQueue *_queue;
+	Exchange *_proxieQueue;
 	std::map<std::string, Client> _linkedQueues;
 	bool _isExchange;
 	struct sockaddr_in _serv_addr;
@@ -34,9 +34,9 @@ public:
 	void putQueue(Client c, char *input);
 	void getQueue(Client c, char *input, char *message);
 	void listQueue(Client c, char *input, char *count);
-	void handleGet(string input);
-	void handlePut(string input);
-	void hangleList(string input);
+	void handleGet(char *recv, int connfd);
+	void handlePut(char *recv, int connfd);
+	void handleList(char *recv, int connfd);
 };
 
 using namespace std;
@@ -48,14 +48,12 @@ Server::Server(char *&name, char *&type)
 	if (strstr(type, "queue"))
 	{
 		_isExchange = false;
-		_queue = MessageQueue(name);
-		_proxieQueue = NULL;
+		*_queue = MessageQueue(_name);
 	}
 	else
 	{
 		_isExchange = true;
-		_queue = NULL;
-		_proxieQueue = Exchange(name);
+		*_proxieQueue = Exchange(_name);
 	}
 
 	_serv_addr.sin_family = AF_INET;
@@ -100,9 +98,14 @@ void Server::addLinkedQueue(string input)
 	iss >> command >> name >> ipAddr >> portNum;
 	stringstream pNum(portNum);
 	stringstream ip(ipAddr);
+	char *ipa;
+	ip >> ipa;
+	char *p;
+	pNum >> p;
 	// create a new client linked to the new queue
-	Client client = Client(ip, pNum);	
-	_linkedQueues.insert(pair<string, Client>(name.c_str(), client.c_str()));
+	Client client = Client(ipa, p);
+	//Client *client = Client(ipA, p);
+	_linkedQueues.insert(pair<string, Client>(name, client));
 	cout << name << " linked to " << _name << " successfully" << endl;
 
 }
@@ -124,7 +127,7 @@ void Server::putQueue(Client c, char *info)
 	}
 	
 	// connect
-	if (connect(sockfd, (struct sockaddr *)&s, sizeof(s) < 0)
+	if (connect(sockfd, (struct sockaddr *)&s, sizeof(s) < 0))
 	{
 		cout << "connect error: " << strerror(errno) << endl;
 		return;
@@ -198,18 +201,18 @@ void Server::getQueue(Client c, char *info, char *message)
 	close(sockfd);
 }
 
-void Server::handleGet(string input)
+void Server::handleGet(char *recv, int connfd)
 {
 	string str, command, name;
 	istringstream iss(recv);
 	iss >> command >> name;
 	// if this queue's name matches then send the
 	// first message in your queue if your queue is not empty
-	if (strcmp(q.getName().c_str(), name.c_str()) == 0)
+	if (!_isExchange && (_name == name))
 	{
-		if (q.containsMessages())
+		if (_queue->containsMessages())
 		{
-			str = q.getMessage();
+			str = _queue->getMessage();
 			char *message = new char[str.length() + 1];
 			strcpy(message, str.c_str());
 			write(connfd, message, strlen(message));
@@ -229,23 +232,18 @@ void Server::handleGet(string input)
 		bool exists = false;
 		char message[4096];
 		memset(message, 0, sizeof(message));
-		for(Server s : linkedQueues)
+		
+		if (_linkedQueues.find(name) != _linkedQueues.end())
 		{
-			// if a Server in linkedQueues name matches the read name
-			if(strcmp(s.name, name.c_str()) == 0)
-			{
-				cout << "Get command forwarded to queue " << s.name << endl;
-				// send the Server a request for the first message in its queue
-				getQueue(s, recv, message);
-				// send the message to the client
-				write(connfd, message, sizeof(message));
-				exists = true;
-				break;
-			}
+			cout << "Get command forwarded to queue " << name << endl;
+			// send the Server a request for the first message in its queue
+			getQueue(_linkedQueues.at(name), recv, message);
+			// send the message to the client
+			write(connfd, message, sizeof(message));
 		}
 		// if no queue with that name exists
 		// send an error message to the client
-		if (!exists)
+		else
 		{
 			cout << "No queue has the name " << name << endl;
 			write(connfd, "No queue of that name exists", 50);
@@ -253,7 +251,7 @@ void Server::handleGet(string input)
 	}
 }
 
-void Server::handlePut(string input)
+void Server::handlePut(char *recv, int connfd)
 {
 	// extract the message from the received input
 	const char *message = strstr(recv, "\"");
@@ -275,29 +273,23 @@ void Server::handlePut(string input)
 	{
 		cout << "Queue name: " << n << endl;
 		// if the name received is the name of this queue
-		if(strcmp(q.getName().c_str(), n.c_str()) == 0)
+		if(!_isExchange && _name == n)
 		{
 			// add the message to the queue
-			q.addMessage(message);
-			cout << message << " added to " << q.getName() << endl;
+			_queue->addMessage(message);
+			cout << message << " added to " << _name << endl;
 		}
 		else
 		{
 			// otherwise loop through the likedQueues vector
 			// and if linkedQueues has an object with the same name
 			// send that message to that queue
-			bool exists = false;
-			for(Server s : linkedQueues)
+			if (_linkedQueues.find(n) != _linkedQueues.end())
 			{
-				if(strcmp(s.name, n.c_str()) == 0)
-				{
-					cout << "Sending to queue " << s.name << endl;
-					putQueue(s, recv);
-					exists = true;
-					break;
-				}
+				cout << "Sending to queue " << n << endl;
+				putQueue(_linkedQueues.at(n), recv);
 			}
-			if (!exists)
+			else
 			{
 				cout << "No queue has the name " << n << endl;
 			}
@@ -305,16 +297,16 @@ void Server::handlePut(string input)
 	}
 }
 
-void Server::handleList(string input)
+void Server::handleList(char *recv, int connfd)
 {
 	string command, name;
 	istringstream iss(recv);
 	iss >> command >> name;
 	// if this queue's name is the same,
 	// send the client this queue's number of message
-	if (strcmp(q.getName().c_str(), name.c_str()) == 0)
+	if (!_isExchange && _name == name)
 	{
-		int c = q.getMessageCount();
+		int c = _queue->getMessageCount();
 		string str;
 		stringstream out;
 		out << c;
@@ -328,22 +320,15 @@ void Server::handleList(string input)
 	{
 		bool exists = false;
 		char count[32];
-		for(Server s : linkedQueues)
+		if (_linkedQueues.find(name) != _linkedQueues.end())
 		{
-			// if a Server in linkedQueues has the same name
-			if(strcmp(s.name, name.c_str()) == 0)
-			{
-				cout << "List command forwarded to queue " << s.name << endl;
-				listQueue(s, recv, count);
-				write(connfd, count, sizeof(count));
-				exists = true;
-				// and exit the loop
-				break;
-			}
+			cout << "List command forwarded to queue " << name << endl;
+			listQueue(_linkedQueues.at(name), recv, count);
+			write(connfd, count, sizeof(count));
 		}
 		// if the queue does not exist send an error message to
 		// the client
-		if (!exists)
+		else
 		{
 			cout << "No queue has the name " << name << endl;
 			write(connfd, "No queue of that name exists", 50);

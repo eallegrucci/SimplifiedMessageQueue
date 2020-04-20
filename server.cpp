@@ -60,23 +60,21 @@ int main(int argc, char *argv[])
 			// places the received message in each queue specified by client
 			if (strstr(recv, "put"))
 			{
-				cout << "Received put command from client" << endl;
-				cout << recv << endl;
-				
-				server.handlePut(recv);
+				cout << "Received put command from client" << endl;	
+				server.handlePut(recv, connfd);
 			}
 			// handles the list command
 			// list command only takes 1 queue name as an input
 			else if (strstr(recv, "list"))
 			{
 				cout << "List command received from client" << endl;
-				server.handleList(recv);
+				server.handleList(recv, connfd);
 			}
 			// handles get command
 			else if (strstr(recv, "get"))
 			{
 				cout << "Get command received from client" << endl;
-				server.handleGet(recv);
+				server.handleGet(recv, connfd);
 			}
 			else
 				cout << "Command not recognized" << endl;

@@ -68,7 +68,7 @@ Client::Client(char *&ipAddr, char *&port)
 	cout << "client created successfully" << endl;
 }
 
-struct sockaddr_in getAddr()
+struct sockaddr_in Client::getAddr()
 {
 	return _serv_addr;
 }

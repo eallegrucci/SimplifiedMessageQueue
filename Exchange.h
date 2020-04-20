@@ -19,11 +19,4 @@ public:
 	void subscriptions();
 };
 
-using namespace std;
-
-Exchange::Exchange(string name)
-{
-	_name = name;
-}
-
 #endif /* EXCHANGE_H */
