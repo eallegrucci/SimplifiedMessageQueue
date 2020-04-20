@@ -23,6 +23,7 @@ class Client {
 	std::vector<std::string> _subscriptions;
 public:
 	Client(char *&ipAddr, char *&port);
+	struct sockaddr_in getAddr();
 	std::vector<std::string> getSubscriptions();
 	bool isSubscribed(const std::string &subscription);
 	void get(std::string input);
@@ -65,6 +66,11 @@ Client::Client(char *&ipAddr, char *&port)
 	}
 
 	cout << "client created successfully" << endl;
+}
+
+struct sockaddr_in getAddr()
+{
+	return _serv_addr;
 }
 
 vector<string> Client::getSubscriptions()
