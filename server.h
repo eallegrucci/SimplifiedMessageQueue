@@ -22,14 +22,15 @@
 
 class Server {
 	std::string _name;
-	MessageQueue *_queue;
-	Exchange *_proxieQueue;
+	MessageQueue _queue = MessageQueue();
+	//Exchange *_proxieQueue;
 	std::map<std::string, Client> _linkedQueues;
 	bool _isExchange;
 	struct sockaddr_in _serv_addr;
 	int _listenfd;
 public:
 	Server(char *&name, char *&type);
+	std::string getName();
 	void addLinkedQueue(std::string name);
 	void putQueue(Client c, char *input);
 	void getQueue(Client c, char *input, char *message);
@@ -44,29 +45,22 @@ using namespace std;
 Server::Server(char *&name, char *&type)
 {
 	_name = name;
-
-	if (strstr(type, "queue"))
-	{
-		_isExchange = false;
-		*_queue = MessageQueue(_name);
-	}
-	else
-	{
-		_isExchange = true;
-		*_proxieQueue = Exchange(_name);
-	}
-
+	_isExchange = false;
+	
 	_serv_addr.sin_family = AF_INET;
+	cout << _serv_addr.sin_family << endl;
 	_serv_addr.sin_addr.s_addr = htonl (INADDR_ANY);
+	cout << _serv_addr.sin_addr.s_addr << endl;
 	//change port number check if its occupied
 	_serv_addr.sin_port = htons(5000); 
 
+	cout << "_serv_addr set" << endl;
 	// create socket
 	if((_listenfd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
 	{
 		cout << "socket error" << endl;
 	}
-	
+	cout << "socket created" << endl;	
 	int i = 0;
 	// while the ind is unsuccessful change the port number
 	// exit the loop once the bind is successful or after 1000 unsuccessful tries
@@ -80,6 +74,7 @@ Server::Server(char *&name, char *&type)
 		i++;
 	}
 
+	cout << "bind done" << endl;
 	// listen for the connection
 	if (listen(_listenfd, 10) < 0)
 	{
@@ -87,6 +82,11 @@ Server::Server(char *&name, char *&type)
 	}
 
 	cout << "port number: " << _serv_addr.sin_port << endl;
+}
+
+string Server::getName()
+{
+	return _name;
 }
 
 void Server::addLinkedQueue(string input)
@@ -210,9 +210,9 @@ void Server::handleGet(char *recv, int connfd)
 	// first message in your queue if your queue is not empty
 	if (!_isExchange && (_name == name))
 	{
-		if (_queue->containsMessages())
+		if (_queue.containsMessages())
 		{
-			str = _queue->getMessage();
+			str = _queue.getMessage();
 			char *message = new char[str.length() + 1];
 			strcpy(message, str.c_str());
 			write(connfd, message, strlen(message));
@@ -276,7 +276,7 @@ void Server::handlePut(char *recv, int connfd)
 		if(!_isExchange && _name == n)
 		{
 			// add the message to the queue
-			_queue->addMessage(message);
+			_queue.addMessage(message);
 			cout << message << " added to " << _name << endl;
 		}
 		else
@@ -306,7 +306,7 @@ void Server::handleList(char *recv, int connfd)
 	// send the client this queue's number of message
 	if (!_isExchange && _name == name)
 	{
-		int c = _queue->getMessageCount();
+		int c = _queue.getMessageCount();
 		string str;
 		stringstream out;
 		out << c;

@@ -17,9 +17,11 @@ int main(int argc, char *argv[])
 		cout << argv[1] << argv[2] << endl;
 		return 1;
 	}
-
+	
+	cout << "checking arguments" <<endl;
 	Server server = Server(argv[3], argv[2]);
 
+	cout << "server created" << endl;
 	string input;
 	char recv[4096], message[4096];
 

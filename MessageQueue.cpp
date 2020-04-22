@@ -3,17 +3,10 @@
 using namespace std;
 
 // constructor
-MessageQueue::MessageQueue(string name)
+MessageQueue::MessageQueue()
 {
-	_name = name;
 	_messageCount = 0;
-}
-
-// getName()
-// returns the name of the queue
-string MessageQueue::getName() const
-{
-	return _name;
+	cout << "set message count" << endl;
 }
 
 // getMessageCount()
@@ -40,7 +33,7 @@ string MessageQueue::getMessage()
 {
 	if (_messageCount == 0)
 	{
-		cout << "no messages to get inside " << _name << endl;
+		cout << "no messages to get" << endl;
 		return "";
 	}
 	string m = _messages.front();

@@ -1,5 +1,5 @@
-all: server.o client.o MessageQueue.o Exchange.o
-	g++ -std=c++11 server.o MessageQueue.o Exchange.o -o server
+all: server.o client.o MessageQueue.o
+	g++ -std=c++11 server.o MessageQueue.o -o server
 	g++ -std=c++11 client.o MessageQueue.o -o client
 
 server.o: server.cpp
@@ -11,8 +11,8 @@ client.o: client.cpp
 MessageQueue.o: MessageQueue.cpp
 	g++ -std=c++11 -c MessageQueue.cpp
 
-Exchange.o: Exchange.cpp
-	g++ -std=c++11 -c Exchange.cpp
+#Exchange.o: Exchange.cpp
+#	g++ -std=c++11 -c Exchange.cpp
 
 debug: server.o client.o
 	g++ -std=c++11 -g -o server server.cpp
