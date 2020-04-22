@@ -39,6 +39,7 @@ public:
 	void handleGet(char *recv, int connfd);
 	void handlePut(char *recv, int connfd);
 	void handleList(char *recv, int connfd);
+	void handleBind(char *recv, int connfd);
 };
 
 using namespace std;
@@ -98,22 +99,39 @@ int Server::getListenfd()
 void Server::addLinkedQueue(string input)
 {
 	// add the new Server to the linkedQueues vector
+	cout << "addLinkedQueue entered" << endl;
 	string command, name, ipAddr, portNum;
+	char buff[10];
 	// add a new Server item to the linkedQueues list
 	istringstream iss(input);
+	cout << "iss stream" << endl;
 	iss >> command >> name >> ipAddr >> portNum;
+	cout << command << endl;
+	cout << name << endl;
+	cout << ipAddr << endl;
+	cout << portNum << endl;
 	stringstream pNum(portNum);
 	stringstream ip(ipAddr);
 	char *ipa;
 	ip >> ipa;
+	cout << *ipa << endl;
 	char *p;
 	pNum >> p;
+	cout << *p << endl;
+	cout << "server input parsed" << endl;
 	// create a new client linked to the new queue
 	Client client = Client(ipa, p);
-	//Client *client = Client(ipA, p);
+	cout << "client add in addLinkedQueue" << endl;
 	_linkedQueues.insert(pair<string, Client>(name, client));
-	cout << name << " linked to " << _name << " successfully" << endl;
-
+	cout << "client added to linked queue" << endl;
+	write(client.getSockfd(), input.c_str(), input.length() + 1);
+	cout << "wrote bind to other queue" << endl;
+	read(client.getSockfd(), buff, sizeof(buff));
+	cout << "read bound from other queue" << endl;
+	if (strstr(buff, "bound"))
+		cout << name << " linked to " << _name << " successfully" << endl;
+	else
+		cout << "bind to " << name << " unsuccessful" << endl;
 }
 
 // putQueue(Server, char *)
@@ -340,6 +358,29 @@ void Server::handleList(char *recv, int connfd)
 			write(connfd, "No queue of that name exists", 50);
 		}
 	}
+}
+
+void Server::handleBind(char *recv, int connfd)
+{
+	cout << "inside handleBind" << endl;
+	istringstream iss(recv);
+	string command, name, ipAddr, portNum;
+	iss >> command >> name >> ipAddr >> portNum;
+	stringstream pNum(portNum);
+	stringstream ip(ipAddr);
+	char *ipa;
+	ip >> ipa;
+	char *p;
+	pNum >> p;
+	cout << "string parsed" << endl;
+	// create a new client linked to the new queue
+	Client client = Client(ipa, p);
+	cout << "client created" << endl;
+	_linkedQueues.insert(pair<string, Client>(name, client));
+	cout << "client added to linked queue" << endl;
+	write(connfd, "bound", 10);
+	cout << "wrote bound to other queue" << endl;
+	cout << name << " linked to " << _name << " successfully" << endl;	
 }
 
 #endif /* SERVER_H */

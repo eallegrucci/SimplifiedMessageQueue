@@ -78,6 +78,11 @@ int main(int argc, char *argv[])
 				cout << "Get command received from client" << endl;
 				server.handleGet(recv, connfd);
 			}
+			else if (strstr(recv, "bind"))
+			{
+				cout << "bind command received" << endl;
+				server.handleBind(recv, connfd);
+			}
 			else
 				cout << "Command not recognized" << endl;
 			//clear command buffer
