@@ -19,7 +19,8 @@ int main(int argc, char *argv[])
 
 	cout << argv[1] << " " << argv[2] << endl;
 
-	Client client = Client(argv[1], argv[2]);
+	string ip(argv[1]), port(argv[2]);
+	Client client = Client(ip, port);
 	
 	cout << "Connected to IP: " << argv[1] << " with Port: " << argv[2] << endl;
 

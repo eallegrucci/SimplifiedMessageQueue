@@ -22,7 +22,7 @@ class Client {
 	int _sockfd;
 	std::vector<std::string> _subscriptions;
 public:
-	Client(char *&ipAddr, char *&port);
+	Client(std::string ipAddr, std::string port);
 	struct sockaddr_in getAddr();
 	int getSockfd();
 	std::vector<std::string> getSubscriptions();
@@ -36,7 +36,7 @@ public:
 
 using namespace std;
 
-Client::Client(char *&ipAddr, char *&port)
+Client::Client(string ipAddr, string port)
 {
 	_sockfd = 0;
 	memset(&_serv_addr, 0, sizeof(_serv_addr));
@@ -51,9 +51,9 @@ Client::Client(char *&ipAddr, char *&port)
 
 	// set address
 	_serv_addr.sin_family = AF_INET;
-	_serv_addr.sin_port = atoi(port); 
+	_serv_addr.sin_port = atoi(port.c_str()); 
 
-	if(inet_pton(AF_INET, ipAddr, &_serv_addr.sin_addr) <= 0)
+	if(inet_pton(AF_INET, ipAddr.c_str(), &_serv_addr.sin_addr) <= 0)
 	{
 		cout << "inet_pton error" << endl;
 	}

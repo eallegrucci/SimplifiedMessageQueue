@@ -110,21 +110,17 @@ void Server::addLinkedQueue(string input)
 	cout << name << endl;
 	cout << ipAddr << endl;
 	cout << portNum << endl;
-	stringstream pNum(portNum);
-	stringstream ip(ipAddr);
-	char *ipa;
-	ip >> ipa;
-	cout << *ipa << endl;
-	char *p;
-	pNum >> p;
-	cout << *p << endl;
 	cout << "server input parsed" << endl;
+	string myAddr = to_string(_serv_addr.sin_addr.s_addr);
+	string myPort = to_string(_serv_addr.sin_port);
+	cout << "myAddr " << _serv_addr.sin_addr.s_addr << " " << myAddr;
 	// create a new client linked to the new queue
-	Client client = Client(ipa, p);
+	Client client = Client(ipAddr, portNum);
 	cout << "client add in addLinkedQueue" << endl;
 	_linkedQueues.insert(pair<string, Client>(name, client));
 	cout << "client added to linked queue" << endl;
-	write(client.getSockfd(), input.c_str(), input.length() + 1);
+	string new_input = command + " " + _name + " " + myAddr + " " + myPort;
+	write(client.getSockfd(), new_input.c_str(), new_input.length() + 1);
 	cout << "wrote bind to other queue" << endl;
 	read(client.getSockfd(), buff, sizeof(buff));
 	cout << "read bound from other queue" << endl;
@@ -366,15 +362,13 @@ void Server::handleBind(char *recv, int connfd)
 	istringstream iss(recv);
 	string command, name, ipAddr, portNum;
 	iss >> command >> name >> ipAddr >> portNum;
-	stringstream pNum(portNum);
-	stringstream ip(ipAddr);
-	char *ipa;
-	ip >> ipa;
-	char *p;
-	pNum >> p;
+	cout << command << endl;
+	cout << name << endl;
+	cout << ipAddr << endl;
+	cout << portNum << endl;
 	cout << "string parsed" << endl;
 	// create a new client linked to the new queue
-	Client client = Client(ipa, p);
+	Client client = Client(ipAddr, portNum);
 	cout << "client created" << endl;
 	_linkedQueues.insert(pair<string, Client>(name, client));
 	cout << "client added to linked queue" << endl;
