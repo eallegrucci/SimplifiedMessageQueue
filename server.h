@@ -13,6 +13,7 @@
 #include <cstdlib>
 #include <unistd.h>
 #include <errno.h>
+#include <ifaddrs.h>
 #include <sys/types.h>
 #include <cassert>
 #include <sstream>
@@ -27,6 +28,7 @@ class Server {
 	std::map<std::string, Client> _linkedQueues;
 	bool _isExchange;
 	struct sockaddr_in _serv_addr;
+	struct ifaddrs *_myAddr;
 	int _listenfd;
 public:
 	Server(char *&name, char *&type);
@@ -48,7 +50,37 @@ Server::Server(char *&name, char *&type)
 {
 	_name = name;
 	_isExchange = false;
+	int s, family; 
+	char host[NI_MAXHOST];
+	struct ifaddrs *ifa;
+	void *tempAddrPtr;
 	
+	if (getifaddrs(&_myAddr) == -1)
+	{
+		perror("getifaddrs");
+		exit(EXIT_FAILURE);
+	}
+
+	for (ifa = _myAddr; ifa != NULL; ifa = ifa->ifa_next)
+	{
+		family = _myAddr->ifa_addr->sa_family;
+
+		if (family == AF_INET)
+		{
+			tempAddrPtr = &((struct sockaddr_in*)ifa->ifa_addr)->sin_addr;
+			s = getnameinfo(ifa->ifa_addr, sizeof(struct sockaddr_in), host,
+					NI_MAXHOST, NULL, 0, NI_NUMERICHOST);
+		}
+		if (s != 0)
+		{
+			cout << "getnameinfo failed" << endl;
+			exit(EXIT_FAILURE);
+		}
+		cout << host << endl;
+		cout << ifa->ifa_addr << endl;
+		inet_ntop(AF_INET, ifa->ifa_addr, host, NI_MAXHOST);
+		cout << "myaddr " << host << endl;
+	}
 	_serv_addr.sin_family = AF_INET;
 	cout << _serv_addr.sin_family << endl;
 	_serv_addr.sin_addr.s_addr = htonl (INADDR_ANY);
