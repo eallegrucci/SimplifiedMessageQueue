@@ -49,7 +49,7 @@ int main(int argc, char *argv[])
 	while(1)
 	{
 		//connect to client
-		if((connfd = accept(listenfd, (struct sockaddr*)NULL, NULL)) < 0)
+		if((connfd = accept(server.getListenfd(), (struct sockaddr*)NULL, NULL)) < 0)
 		{
 			cout << "accept error" << endl;
 			return 1;

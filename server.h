@@ -31,6 +31,7 @@ class Server {
 public:
 	Server(char *&name, char *&type);
 	std::string getName();
+	int getListenfd();
 	void addLinkedQueue(std::string name);
 	void putQueue(Client c, char *input);
 	void getQueue(Client c, char *input, char *message);
@@ -87,6 +88,11 @@ Server::Server(char *&name, char *&type)
 string Server::getName()
 {
 	return _name;
+}
+
+int Server::getListenfd()
+{
+	return _listenfd;
 }
 
 void Server::addLinkedQueue(string input)
