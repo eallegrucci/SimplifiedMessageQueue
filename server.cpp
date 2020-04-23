@@ -17,7 +17,7 @@ int main(int argc, char *argv[])
 		cout << argv[1] << argv[2] << endl;
 		return 1;
 	}
-	
+
 	cout << "checking arguments" <<endl;
 	Server server = Server(argv[3], argv[2]);
 

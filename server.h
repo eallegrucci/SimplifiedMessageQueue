@@ -17,22 +17,26 @@
 #include <sys/types.h>
 #include <cassert>
 #include <sstream>
+#include <sys/utsname.h>
 #include "MessageQueue.h"
 #include "Exchange.h"
 #include "client.h"
 
 class Server {
 	std::string _name;
+	std::string _hostname;
+	std::string _myIP;
+	std::string _myPort;
 	MessageQueue _queue = MessageQueue();
 	//Exchange *_proxieQueue;
 	std::map<std::string, Client> _linkedQueues;
 	bool _isExchange;
 	struct sockaddr_in _serv_addr;
-	struct ifaddrs *_myAddr;
 	int _listenfd;
 public:
 	Server(char *&name, char *&type);
 	std::string getName();
+	std::string getHostname();
 	int getListenfd();
 	void addLinkedQueue(std::string name);
 	void putQueue(Client c, char *input);
@@ -50,41 +54,20 @@ Server::Server(char *&name, char *&type)
 {
 	_name = name;
 	_isExchange = false;
-	int s, family; 
-	char host[NI_MAXHOST];
-	struct ifaddrs *ifa;
-	void *tempAddrPtr;
+	struct hostent *host;
+	char hostname[256];
+	char *IPbuff;
+	gethostname(hostname, 256);
+
+	_hostname = hostname;
+
+	host = gethostbyname(hostname);
+	IPbuff = inet_ntoa(*((struct in_addr *)host->h_addr_list[0]));
+	_myIP = IPbuff;
 	
-	if (getifaddrs(&_myAddr) == -1)
-	{
-		perror("getifaddrs");
-		exit(EXIT_FAILURE);
-	}
-
-	for (ifa = _myAddr; ifa != NULL; ifa = ifa->ifa_next)
-	{
-		family = _myAddr->ifa_addr->sa_family;
-
-		if (family == AF_INET)
-		{
-			tempAddrPtr = &((struct sockaddr_in*)ifa->ifa_addr)->sin_addr;
-			s = getnameinfo(ifa->ifa_addr, sizeof(struct sockaddr_in), host,
-					NI_MAXHOST, NULL, 0, NI_NUMERICHOST);
-		}
-		if (s != 0)
-		{
-			cout << "getnameinfo failed" << endl;
-			exit(EXIT_FAILURE);
-		}
-		cout << host << endl;
-		cout << ifa->ifa_addr << endl;
-		inet_ntop(AF_INET, ifa->ifa_addr, host, NI_MAXHOST);
-		cout << "myaddr " << host << endl;
-	}
 	_serv_addr.sin_family = AF_INET;
-	cout << _serv_addr.sin_family << endl;
 	_serv_addr.sin_addr.s_addr = htonl (INADDR_ANY);
-	cout << _serv_addr.sin_addr.s_addr << endl;
+	
 	//change port number check if its occupied
 	_serv_addr.sin_port = htons(5000); 
 
@@ -115,12 +98,19 @@ Server::Server(char *&name, char *&type)
 		cout << "listen error" << endl;
 	}
 
-	cout << "port number: " << _serv_addr.sin_port << endl;
+	_myPort = to_string(_serv_addr.sin_port);
+
+	cout << "port number: " << _myPort << endl;
 }
 
 string Server::getName()
 {
 	return _name;
+}
+
+string Server::getHostname()
+{
+	return _hostname;
 }
 
 int Server::getListenfd()
