@@ -9,7 +9,6 @@ int main(int argc, char *argv[])
 {
 	int sockfd = 0, n;
 	string message = "";
-	struct sockaddr_in serv_addr;
 
 	// checking the arguments
 	if(argc != 3)
@@ -20,36 +19,9 @@ int main(int argc, char *argv[])
 
 	cout << argv[1] << " " << argv[2] << endl;
 
-	memset(&serv_addr, 0, sizeof(serv_addr));
+	string ip(argv[1]), port(argv[2]);
+	Client client = Client(ip, port);
 	
-	// open socket
-	if((sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
-	{
-		printf("socket error\n");
-		return 1;
-	}
-
-	cout << "socket openned" << endl;
-
-	// set address
-	serv_addr.sin_family = AF_INET;
-	serv_addr.sin_port = atoi(argv[2]); 
-
-	if(inet_pton(AF_INET, argv[1], &serv_addr.sin_addr) <= 0)
-	{
-		printf("inet_pton error\n");
-		return 1;
-	}
-
-	cout << "inet_pton complete" << endl;
-	
-	// connect
-	if(connect(sockfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0)
-	{
-		printf("connect error\n");
-		return 1;
-	}
-
 	cout << "Connected to IP: " << argv[1] << " with Port: " << argv[2] << endl;
 
 	string input;
@@ -64,31 +36,17 @@ int main(int argc, char *argv[])
 		// handles get command
 		if (strstr(input.c_str(), "get"))
 		{
-			// sends the server the command
-			write(sockfd, input.c_str(), input.length() + 1);
-			// reads the message from the requested queue
-			read(sockfd, buff, sizeof(buff));
-			// outputs the message
-			cout << buff << endl;
+			client.get(input);
 		}
 		// handles the put command
 		else if (strstr(input.c_str(), "put"))
 		{
-			const char *message = strstr(input.c_str(), "\"");
-			// write the message to the server and the server will
-			// distribute it to the named queues it received from this client
-			write(sockfd, input.c_str(), input.length() + 1);
-			cout << message << " sent" << endl;
+			client.put(input);
 		}
 		// handles list command
 		else if (strstr(input.c_str(), "list"))
 		{
-			// sends the command to the server
-			write(sockfd, input.c_str(), input.length() + 1);
-			// read the number of messages of the named queue from the server
-			read(sockfd, buff, sizeof(buff));
-			// outputs the message count
-			cout << buff << " messages" << endl;
+			client.list(input);
 		}
 		// handles inexceptable commands
 		else
