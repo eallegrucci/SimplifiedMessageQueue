@@ -133,15 +133,13 @@ void Server::addLinkedQueue(string input)
 	cout << ipAddr << endl;
 	cout << portNum << endl;
 	cout << "server input parsed" << endl;
-	string myAddr = to_string(_serv_addr.sin_addr.s_addr);
-	string myPort = to_string(_serv_addr.sin_port);
-	cout << "myAddr " << _serv_addr.sin_addr.s_addr << " " << myAddr;
 	// create a new client linked to the new queue
 	Client client = Client(ipAddr, portNum);
 	cout << "client add in addLinkedQueue" << endl;
 	_linkedQueues.insert(pair<string, Client>(name, client));
 	cout << "client added to linked queue" << endl;
-	string new_input = command + " " + _name + " " + myAddr + " " + myPort;
+	string new_input = command + " " + _name + " " + _myIP + " " + _myPort;
+	cout << new_input << endl;
 	write(client.getSockfd(), new_input.c_str(), new_input.length() + 1);
 	cout << "wrote bind to other queue" << endl;
 	read(client.getSockfd(), buff, sizeof(buff));
