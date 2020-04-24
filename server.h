@@ -157,26 +157,11 @@ void Server::addLinkedQueue(string input)
 // specified by the client
 void Server::putQueue(Client c, char *info)
 {
-	int sockfd = 0;
-	
-	sockaddr_in s = c.getAddr();
-	// create socket
-	if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
-	{
-		cout << "socket error" << endl;
-		return;
-	}
-	
-	// connect
-	if (connect(sockfd, (struct sockaddr *)&s, sizeof(s) < 0))
-	{
-		cout << "connect error: " << strerror(errno) << endl;
-		return;
-	}
-	
+	int sockfd = c.getSockfd();
+	cout << "putQueue" << endl;
+		
 	write(sockfd, info, strlen(info));
-	
-	close(sockfd);
+	cout << "written" << endl;
 }
 
 // listQueue(Server, char *, char *)
@@ -184,28 +169,12 @@ void Server::putQueue(Client c, char *info)
 // queues and requesr the messages count of the specified queue from the client
 void Server::listQueue(Client c, char *info, char *count)
 {
-	int sockfd = 0;
-	
-	sockaddr_in s = c.getAddr();
-	// create socket
-	if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
-	{
-		cout << "socket error" << endl;
-		return;
-	}
-	
-	// connect
-	if (connect(sockfd, (struct sockaddr *)&s, sizeof(s)) < 0)
-	{
-		cout << "connect error: " << strerror(errno) << endl;
-		return;
-	}
-
+	int sockfd = c.getSockfd();
+	cout << "listQueue" << endl;
 	write(sockfd, info, strlen(info));
-	
+	cout << info << " written" << endl;
 	read(sockfd, count, sizeof(count));
-	
-	close(sockfd);
+	cout << count << " read" << endl;
 }
 
 // getQueue(Server, char *, char *)
@@ -214,36 +183,21 @@ void Server::listQueue(Client c, char *info, char *count)
 // relay it to the client
 void Server::getQueue(Client c, char *info, char *message)
 {
-	int sockfd = 0;
-	
-	struct sockaddr_in s = c.getAddr();
-
-	// create socket
-	if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
-	{
-		cout << "socket error" << endl;
-		return;
-	}
-	
-	// connect
-	if (connect(sockfd, (struct sockaddr *)&s, sizeof(s)) < 0)
-	{
-		cout << "connect error: " << strerror(errno) << endl;
-		return;
-	}
+	int sockfd = c.getSockfd();
+	cout << "getQueue" << endl;
 
 	write(sockfd, info, strlen(info));
-	
+	cout << "written" << endl;
 	char buff[4096];
 	memset(buff, 0, sizeof(buff));
 	read(sockfd, buff, sizeof(buff));
 	strcpy(message, buff);
-	
-	close(sockfd);
+	cout << "read" << endl;
 }
 
 void Server::handleGet(char *recv, int connfd)
 {
+	cout << "handleGet" << endl;
 	string str, command, name;
 	istringstream iss(recv);
 	iss >> command >> name;
@@ -251,6 +205,7 @@ void Server::handleGet(char *recv, int connfd)
 	// first message in your queue if your queue is not empty
 	if (!_isExchange && (_name == name))
 	{
+		cout << "get my queue" << endl;
 		if (_queue.containsMessages())
 		{
 			str = _queue.getMessage();
@@ -273,7 +228,7 @@ void Server::handleGet(char *recv, int connfd)
 		bool exists = false;
 		char message[4096];
 		memset(message, 0, sizeof(message));
-		
+		cout << "check other queue" << endl;
 		if (_linkedQueues.find(name) != _linkedQueues.end())
 		{
 			cout << "Get command forwarded to queue " << name << endl;
@@ -294,6 +249,7 @@ void Server::handleGet(char *recv, int connfd)
 
 void Server::handlePut(char *recv, int connfd)
 {
+	cout << "handlePut" << endl;
 	// extract the message from the received input
 	const char *message = strstr(recv, "\"");
 	string command, name;
@@ -310,12 +266,14 @@ void Server::handlePut(char *recv, int connfd)
 		names.push_back(name);
 		cout << name << endl;
 	}
+	cout << "going to loop through names" << endl;
 	for (string n : names)
 	{
 		cout << "Queue name: " << n << endl;
 		// if the name received is the name of this queue
 		if(!_isExchange && _name == n)
 		{
+			cout << "add message to me" << endl;
 			// add the message to the queue
 			_queue.addMessage(message);
 			cout << message << " added to " << _name << endl;
@@ -340,6 +298,7 @@ void Server::handlePut(char *recv, int connfd)
 
 void Server::handleList(char *recv, int connfd)
 {
+	cout << "handleList" << endl;
 	string command, name;
 	istringstream iss(recv);
 	iss >> command >> name;
@@ -347,6 +306,7 @@ void Server::handleList(char *recv, int connfd)
 	// send the client this queue's number of message
 	if (!_isExchange && _name == name)
 	{
+		cout << "queue is me" << endl;
 		int c = _queue.getMessageCount();
 		string str;
 		stringstream out;
@@ -359,6 +319,7 @@ void Server::handleList(char *recv, int connfd)
 	// otherwise loop through the vector linkedQueues
 	else
 	{
+		cout << "check other queues" << endl;
 		bool exists = false;
 		char count[32];
 		if (_linkedQueues.find(name) != _linkedQueues.end())
