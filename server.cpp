@@ -83,6 +83,20 @@ void listeningToClient(Server *s)
 				s->handleBind(recv, connfd);
 				m.unlock();
 			}
+			else if (strstr(recv, "subscribe"))
+			{
+				cout << "subscribe command received" << endl;
+				m.lock();
+				s->handleSubscriber(recv, connfd);
+				m.unlock();
+			}
+			else if (strstr(recv, "publish"))
+			{
+				cout << "publish command received" << endl;
+				m.lock();
+				s->handlePublisher(recv, connfd);
+				m.unlock();
+			}
 			else
 				cout << "Command not recognized" << endl;
 			//clear command buffer

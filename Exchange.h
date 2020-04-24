@@ -13,7 +13,7 @@ public:
 	std::vector<std::string> getSubscriptions();
 	bool subscriptionExists(std::string name);
 	void handlePublish(char *recv, int connfd);
-	void handleSubscribe(Client c, char *recv);
+	void handleSubscribe(char *recv, const std::string &ip, const std::string &port);
 };
 
 using namespace std;
@@ -61,11 +61,13 @@ void Exchange::handlePublish(char *recv, int connfd)
 	}
 }
 
-void Exchange::handleSubscribe(Client c, char *recv)
+void Exchange::handleSubscribe(char *recv, const string &ip, const string &port)
 {
 	istringstream iss(recv);
 	string command, myname, subname;
 	iss >> command >> myname >> subname;
+
+	Client c = Client(ip, port);
 
 	if (!subscriptionExists(subname))
 	{

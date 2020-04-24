@@ -46,6 +46,8 @@ public:
 	void handlePut(char *recv, int connfd);
 	void handleList(char *recv, int connfd);
 	void handleBind(char *recv, int connfd);
+	void handleSubscriber(char *recv, int connfd);
+	void handlePublisher(char *recv, int connfd);
 };
 
 using namespace std;
@@ -363,6 +365,30 @@ void Server::handleBind(char *recv, int connfd)
 	write(connfd, "bound", 10);
 	cout << "wrote bound to other queue" << endl;
 	cout << name << " linked to " << _name << " successfully" << endl;	
+}
+
+void Server::handleSubscriber(char *recv, int connfd)
+{
+	if (_isExchange)
+	{
+		_exchange.handleSubscribe(recv, _myIP, _myPort);
+	}
+	else
+	{
+		cout << "I am not an exchange server so I can not subscribe" << endl;
+	}
+}
+
+void Server::handlePublisher(char *recv, int connfd)
+{
+	if (_isExchange)
+	{
+		_exchange.handlePublish(recv, connfd);
+	}
+	else
+	{
+		cout << "I am not an exchange server so I can not publish" << endl;
+	}
 }
 
 #endif /* SERVER_H */

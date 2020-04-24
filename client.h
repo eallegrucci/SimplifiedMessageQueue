@@ -16,6 +16,8 @@
 #include <arpa/inet.h> 
 #include <cassert>
 #include <sstream>
+#include <thread>
+#include <mutex>
 
 class Client {
 	struct sockaddr_in _serv_addr;

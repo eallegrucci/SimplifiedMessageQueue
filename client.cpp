@@ -2,6 +2,8 @@
 
 using namespace std;
 
+mutex m;
+
 void inputCommands(Client *c)
 {
 	string input;
@@ -16,26 +18,36 @@ void inputCommands(Client *c)
 		// handles get command
 		if (strstr(input.c_str(), "get"))
 		{
-			client.get(input);
+			m.lock();
+			c->get(input);
+			m.unlock();
 		}
 		// handles the put command
 		else if (strstr(input.c_str(), "put"))
 		{
-			client.put(input);
+			m.lock();
+			c->put(input);
+			m.unlock();
 		}
 		// handles list command
 		else if (strstr(input.c_str(), "list"))
 		{
-			client.list(input);
+			m.lock();
+			c->list(input);
+			m.unlock();
 		}
 		// handles subscribe command
 		else if (strstr(input.c_str(), "subscribe"))
 		{
-			client.subscribe(input);
+			m.lock();
+			c->subscribe(input);
+			m.unlock();
 		}
 		else if (strstr(input.c_str(), "publish"))
 		{
-			client.publish(input);
+			m.lock();
+			c->publish(input);
+			m.unlock();
 		}
 		// handles inexceptable commands
 		else
@@ -49,12 +61,14 @@ void inputCommands(Client *c)
 
 void listeningToExchange(Client *c)
 {
-	buff[4096];
+	char buff[4096];
 	memset(buff, 0, sizeof(buff));
 
 	while(1)
 	{
-		read(c.getSockfd(), buff, sizeof(buff));
+		m.lock();
+		read(c->getSockfd(), buff, sizeof(buff));
+		m.unlock();
 		cout << buff << endl;
 		memset(buff, 0, sizeof(buff));
 	}
@@ -78,9 +92,9 @@ int main(int argc, char *argv[])
 	cout << "Connected to IP: " << argv[1] << " with Port: " << argv[2] << endl;
 	
 	//this thread is waiting for the user to input commands
-	thread t1(inputCommands, client);
+	thread t1(inputCommands, &client);
 	// this thread is wait to read from the exchange server is is connected to
-	thread t2(listeningToSubscription, client);
+	thread t2(listeningToExchange, &client);
 
 	t1.join();
 	t2.join();
