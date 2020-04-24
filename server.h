@@ -283,10 +283,14 @@ void Server::handlePut(char *recv, int connfd)
 			// otherwise loop through the likedQueues vector
 			// and if linkedQueues has an object with the same name
 			// send that message to that queue
+			string mes = command + " " + n + " " + message;
+			cout << mes << endl;
+			char *c = new char[mes.length() + 1];
+			strcpy(c, mes.c_str());
 			if (_linkedQueues.find(n) != _linkedQueues.end())
 			{
 				cout << "Sending to queue " << n << endl;
-				putQueue(_linkedQueues.at(n), recv);
+				putQueue(_linkedQueues.at(n), c);
 			}
 			else
 			{
