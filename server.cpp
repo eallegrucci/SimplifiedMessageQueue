@@ -1,5 +1,4 @@
 #include "server.h"
-#include "MessageQueue.h"
 
 extern int errno;
 
@@ -99,9 +98,9 @@ int main(int argc, char *argv[])
 	int n;
 
 	// check arguments
-	if (argc != 4 || strcmp(argv[1], "create") || strcmp(argv[2], "queue"))
+	if (argc != 4 || strcmp(argv[1], "create") || (strcmp(argv[2], "queue") && strcmp(argv[2], "exchange")))
 	{
-		cout << "Usage: " << argv[0] << " create queue <queue name>" << endl;
+		cout << "Usage: " << argv[0] << " create <server type> <server name>" << endl;
 		cout << argv[1] << argv[2] << endl;
 		return 1;
 	}

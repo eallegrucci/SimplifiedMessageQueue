@@ -126,12 +126,31 @@ void Client::list(string input)
 	cout << buff << " messages" << endl;
 }
 
-void Client::subscribe(std::string input)
+void Client::subscribe(string input)
 {
+	cout << "subscribe" << endl;
+	istringstream iss(input);
+	string command, exchangeName, subscription;
+	iss >> command >> exchangeName >> subscription;
+	if (!isSubscribed(subscription))
+	{
+		_subscriptions.push_back(subscription);
+		write(_sockfd, input.c_str(), input.length() + 1);
+		cout << "subscribed to " << subscription << endl;
+	}
+	else
+		cout << "already subscribed to " << subscription << endl;
 }
 
-void Client::publish(std::string input)
+void Client::publish(string input)
 {
+	cout << "publish" << endl;
+	const char *message = strstr(input.c_str(), "\"");
+	istringstream iss(input);
+	string command, exchangeName, subscription;
+	iss >> command >> exchangeName >> subscription;
+	write(_sockfd, input.c_str(), input.length() + 1);
+	cout << message << " written to " << subscription << endl;
 }
 
 #endif /* CLIENT_H */

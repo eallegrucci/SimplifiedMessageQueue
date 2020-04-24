@@ -21,7 +21,6 @@
 #include <thread>
 #include "MessageQueue.h"
 #include "Exchange.h"
-#include "client.h"
 
 class Server {
 	std::string _name;
@@ -29,7 +28,7 @@ class Server {
 	std::string _myIP;
 	std::string _myPort;
 	MessageQueue _queue = MessageQueue();
-	//Exchange *_proxieQueue;
+	Exchange _exchange = Exchange();
 	std::map<std::string, Client> _linkedQueues;
 	bool _isExchange;
 	struct sockaddr_in _serv_addr;
@@ -54,7 +53,10 @@ using namespace std;
 Server::Server(char *&name, char *&type)
 {
 	_name = name;
-	_isExchange = false;
+	if (!strcmp(type, "queue"))
+		_isExchange = false;
+	else
+		_isExchange = true;
 	struct hostent *host;
 	char hostname[256];
 	char *IPbuff;
