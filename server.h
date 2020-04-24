@@ -17,7 +17,8 @@
 #include <sys/types.h>
 #include <cassert>
 #include <sstream>
-#include <sys/utsname.h>
+#include <mutex>
+#include <thread>
 #include "MessageQueue.h"
 #include "Exchange.h"
 #include "client.h"
