@@ -2,14 +2,10 @@
 
 using namespace std;
 
-mutex m;
-
 void inputCommands(Client *c)
 {
 	cout << "thread input commands" << endl;
 	string input;
-	char buff[4096];
-	memset(buff, 0, sizeof(buff));
 	
 	//Reading user input once connected
 	while(1) {
@@ -20,48 +16,36 @@ void inputCommands(Client *c)
 		if (strstr(input.c_str(), "get"))
 		{
 			cout << "get" << endl;
-			//m.lock();
 			c->get(input);
-			//m.unlock();
 		}
 		// handles the put command
 		else if (strstr(input.c_str(), "put"))
 		{
 			cout << "put" << endl;
-			//m.lock();
 			c->put(input);
-			//m.unlock();
 		}
 		// handles list command
 		else if (strstr(input.c_str(), "list"))
 		{
 			cout << "list" << endl;
-			//m.lock();
 			c->list(input);
-			//m.unlock();
 		}
 		// handles subscribe command
 		else if (strstr(input.c_str(), "subscribe"))
 		{
 			cout << "subscribe" << endl;
-			//m.lock();
 			c->subscribe(input);
-			//m.unlock();
 		}
 		else if (strstr(input.c_str(), "publish"))
 		{
 			cout << "publish" << endl;
-			//m.lock();
 			c->publish(input);
-			//m.unlock();
 		}
 		// handles inexceptable commands
 		else
 		{
 			cout << "That command does not exist" << endl;
 		}
-		// clear buff
-		memset(buff, 0, sizeof(buff));
 	}
 }
 

@@ -101,6 +101,7 @@ void Client::get(string input)
 {
 	cout << "inside get" << endl;
 	char buff[4096];
+	memset(buff, 0, sizeof(buff));
 	// sends the server the command
 	write(_sockfd, input.c_str(), input.length() + 1);
 	// reads the message from the requested queue
@@ -123,6 +124,7 @@ void Client::list(string input)
 {
 	cout << "inside list" << endl;
 	char buff[4096];
+	memset(buff, 0, sizeof(buff));
 	// sends the command to the server
 	write(_sockfd, input.c_str(), input.length() + 1);
 	// read the number of messages of the named queue from the server
