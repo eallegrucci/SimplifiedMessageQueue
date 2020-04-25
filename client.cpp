@@ -57,9 +57,7 @@ void listeningToExchange(Client *c)
 
 	while(1)
 	{
-		//m.lock();
 		read(c->getSockfd(), buff, sizeof(buff));
-		//m.unlock();
 		cout << buff << endl;
 		memset(buff, 0, sizeof(buff));
 	}
@@ -79,14 +77,14 @@ int main(int argc, char *argv[])
 
 	string ip(argv[1]), port(argv[2]);
 	Client client1 = Client(ip, port);
-	Client client2 = Client(ip, port);
+	//Client client2 = Client(ip, port);
 	
 	cout << "Connected to IP: " << argv[1] << " with Port: " << argv[2] << endl;
 	
 	//this thread is waiting for the user to input commands
 	thread t1(inputCommands, &client1);
 	// this thread is wait to read from the exchange server is is connected to
-	thread t2(listeningToExchange, &client2);
+	thread t2(listeningToExchange, &client1);
 
 	t1.join();
 	t2.join();

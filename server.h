@@ -371,7 +371,7 @@ void Server::handleSubscriber(char *recv, int connfd)
 {
 	if (_isExchange)
 	{
-		_exchange.handleSubscribe(recv, _myIP, _myPort);
+		_exchange.handleSubscribe(recv, connfd);
 	}
 	else
 	{

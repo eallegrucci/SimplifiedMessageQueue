@@ -7,13 +7,13 @@
 
 class Exchange {
 	std::vector<std::string> _subscriptions;
-	std::map<std::string, std::vector<Client>> _clients;
+	std::map<std::string, std::vector<int>> _clients;
 public:
 	Exchange();
 	std::vector<std::string> getSubscriptions();
 	bool subscriptionExists(std::string name);
 	void handlePublish(char *recv, int connfd);
-	void handleSubscribe(char *recv, const std::string &ip, const std::string &port);
+	void handleSubscribe(char *recv, int connfd);
 };
 
 using namespace std;
@@ -29,9 +29,13 @@ vector<string> Exchange::getSubscriptions()
 
 bool Exchange::subscriptionExists(string name)
 {
+	cout << "inside subscriptionExists" << endl;
 	for (string s : _subscriptions)
+	{
+		cout << s << endl;
 		if (s == name)
 			return true;
+	}
 	return false;
 }
 
@@ -44,12 +48,17 @@ void Exchange::handlePublish(char *recv, int connfd)
 	// vector of names to send the message to
 	istringstream iss(recv);
 	iss >> command >> myname >> subname;
+	cout << command << endl;
+	cout << myname << endl;
+	cout << subname << endl;
+	cout << message << endl;
 	if (subscriptionExists(subname))
 	{
-		for (Client c : _clients.at(subname))
+		for (int c : _clients.at(subname))
 		{
-			int sockfd = c.getSockfd();
-			write(sockfd, message, strlen(message));
+			cout << connfd << endl;
+			cout << c << endl;
+			write(c, message, strlen(message));
 			cout << "written" << endl;
 		}
 	}
@@ -61,25 +70,29 @@ void Exchange::handlePublish(char *recv, int connfd)
 	}
 }
 
-void Exchange::handleSubscribe(char *recv, const string &ip, const string &port)
+void Exchange::handleSubscribe(char *recv, int connfd)
 {
 	istringstream iss(recv);
 	string command, myname, subname;
 	iss >> command >> myname >> subname;
-
-	Client c = Client(ip, port);
+	cout << command << endl;
+	cout << myname << endl;
+	cout << subname << endl;
+	cout << connfd << endl;
 
 	if (!subscriptionExists(subname))
 	{
 		cout << "new subscription " << subname << endl;
-		vector<Client> cl;
-		cl.push_back(c);
-		_clients.insert(pair<string, vector<Client>>(subname, cl));
+		vector<int> client;
+		client.push_back(connfd);
+		cout << client.at(0);
+		_subscriptions.push_back(subname);
+		_clients.insert(pair<string, vector<int>>(subname, client));
 	}
 	else
 	{
 		cout << "new client add to subscription " << subname << endl;
-		_clients.at(subname).push_back(c);
+		_clients.at(subname).push_back(connfd);
 	}
 }
 
