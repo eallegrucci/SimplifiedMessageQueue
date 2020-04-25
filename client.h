@@ -99,6 +99,7 @@ bool Client::isSubscribed(const string &subscription)
 
 void Client::get(string input)
 {
+	cout << "inside get" << endl;
 	char buff[4096];
 	// sends the server the command
 	write(_sockfd, input.c_str(), input.length() + 1);
@@ -110,6 +111,7 @@ void Client::get(string input)
 
 void Client::put(string input)
 {
+	cout << "inside put" << endl;
 	const char *message = strstr(input.c_str(), "\"");
 	// write the message to the server and the server will
 	// distribute it to the named queues it received from this client
@@ -119,11 +121,14 @@ void Client::put(string input)
 
 void Client::list(string input)
 {
+	cout << "inside list" << endl;
 	char buff[4096];
 	// sends the command to the server
 	write(_sockfd, input.c_str(), input.length() + 1);
 	// read the number of messages of the named queue from the server
+	cout << "written" << endl;
 	read(_sockfd, buff, sizeof(buff));
+	cout << "read" << endl;
 	// outputs the message count
 	cout << buff << " messages" << endl;
 }
