@@ -29,24 +29,67 @@ void backgroundCommands(Server *s) {
 	}
 }
 
-void listeningToClient(Server *s)
+void listeningToClient(Server *s, int connfd)
 {
-	int connfd = 0;	
 	char recv[4096], message[4096];
 	memset(recv, 0, sizeof(recv));
 	memset(message, 0, sizeof(message));
 	// accept and connect to client
-	while(1)
+	
+	int opt = TRUE;
+	int max_sd;
+	fd_set readfs;
+	vectov<int> clientSockets;
+	int masterSocket;
+
+	// create masterSocket
+	if ((masterSocket = socket(AF_INET , SOCK_STREAM , 0)) == 0)
 	{
+		perror("socket failed");
+		exit(EXIT_FAILURE);
+	}
+
+	if (setsockopt(masterSocket, SOL_SOCKET, SOL_REUSEADDR, (char *)&opt, sizeof(opt)) < 0)
+	{
+		perror("setsockopt");
+		exit(EXIT_FAILURE);
+	}
+//type of socket created  
+	address.sin_family = AF_INET;   
+	address.sin_addr.s_addr = INADDR_ANY;   
+	address.sin_port = htons( PORT );   
+	//bind the socket to localhost port 8888  
+	if (bind(master_socket, (struct sockaddr *)&address, sizeof(address))<0)   
+	{   
+		perror("bind failed");   
+		exit(EXIT_FAILURE);   
+	}   
+	printf("Listener on port %d \n", PORT);   
+	//try to specify maximum of 3 pending connections for the master socket  
+	if (listen(master_socket, 3) < 0)   
+	{   
+		perror("listen");   
+		exit(EXIT_FAILURE);   
+	}  
+	//accept the incoming connection
+	addrlen = sizeof(address);   
+	puts("Waiting for connections ...");   
+	while (1)
+	{
+		FD_ZERO(&readfds);
+
+		//add master socket to set  
+		FD_SET(master_socket, &readfds);   
+		max_sd = master_socket;
+
 		//connect to client
 		m.lock();
-		if((connfd = accept(s->getListenfd(), (struct sockaddr*)NULL, NULL)) < 0)
+		if((connfd = accept(server.getListenfd(), (struct sockaddr*)NULL, NULL)) < 0)
 		{
 			cout << "accept error" << endl;
 			perror("accept");
 		}
 		m.unlock();
-
 		// read from client
 		while(read(connfd, recv, sizeof(recv)) > 0)
 		{
@@ -102,14 +145,14 @@ void listeningToClient(Server *s)
 			//clear command buffer
 			memset(recv, 0, sizeof(recv));
 		}
-		close(connfd);
-		cout << "Connection to socket closed." << endl;
-     }
+	}
+	close(connfd);
+	cout << "Connection to socket closed." << endl;
 }
 
 int main(int argc, char *argv[])
 {
-	int n;
+	int connfd;
 
 	// check arguments
 	if (argc != 4 || strcmp(argv[1], "create") || (strcmp(argv[2], "queue") && strcmp(argv[2], "exchange")))
@@ -125,7 +168,7 @@ int main(int argc, char *argv[])
 	cout << "server created" << endl;
 
 	thread t1(backgroundCommands, &server);
-	thread t2(listeningToClient, &server);
+	thread t2(listneningToClient, &server);
 
 	t1.join();
 	t2.join();
