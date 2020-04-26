@@ -66,6 +66,7 @@ void listeningToExchange(Client *c)
 
 int main(int argc, char *argv[])
 {
+	char message[4096];
 	// checking the arguments
 	if(argc != 3)
 	{
@@ -80,7 +81,8 @@ int main(int argc, char *argv[])
 	//Client client2 = Client(ip, port);
 	
 	cout << "Connected to IP: " << argv[1] << " with Port: " << argv[2] << endl;
-	
+	//read(client1.getSockfd(), message, sizeof(message));
+	//cout << "message" << endl;
 	//this thread is waiting for the user to input commands
 	thread t1(inputCommands, &client1);
 	// this thread is wait to read from the exchange server is is connected to

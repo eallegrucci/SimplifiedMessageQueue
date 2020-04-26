@@ -19,6 +19,7 @@
 #include <sstream>
 #include <mutex>
 #include <thread>
+#include <algorithm>
 #include "MessageQueue.h"
 #include "Exchange.h"
 
@@ -32,12 +33,13 @@ class Server {
 	std::map<std::string, Client> _linkedQueues;
 	bool _isExchange;
 	struct sockaddr_in _serv_addr;
-	int _listenfd;
+	int _masterSocket;
 public:
 	Server(char *&name, char *&type);
 	std::string getName();
 	std::string getHostname();
-	int getListenfd();
+	int getMasterSocket();
+	struct sockaddr_in getAddr();
 	void addLinkedQueue(std::string name);
 	void putQueue(Client c, char *input);
 	void getQueue(Client c, char *input, char *message);
@@ -59,9 +61,11 @@ Server::Server(char *&name, char *&type)
 		_isExchange = false;
 	else
 		_isExchange = true;
+	
 	struct hostent *host;
 	char hostname[256];
 	char *IPbuff;
+	int opt = true;
 	gethostname(hostname, 256);
 
 	_hostname = hostname;
@@ -77,32 +81,47 @@ Server::Server(char *&name, char *&type)
 	_serv_addr.sin_port = htons(5000); 
 
 	cout << "_serv_addr set" << endl;
-	// create socket
-	if((_listenfd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
+
+	// create masterSocket
+	if ((_masterSocket = socket(AF_INET , SOCK_STREAM , 0)) == 0)
 	{
-		cout << "socket error" << endl;
+		perror("socket failed");
+		exit(EXIT_FAILURE);
 	}
-	cout << "socket created" << endl;	
+	cout << "masterSocket " << _masterSocket << endl;
+
+	if (setsockopt(_masterSocket, SOL_SOCKET, SO_REUSEADDR, (char *)&opt, sizeof(opt)) < 0)
+	{
+		perror("setsockopt");
+		exit(EXIT_FAILURE);
+	}
+
+	cout << "setsockopt" << endl;
+	cout << opt << endl;
+
 	int i = 0;
 	// while the ind is unsuccessful change the port number
 	// exit the loop once the bind is successful or after 1000 unsuccessful tries
-	while(bind(_listenfd, (struct sockaddr*)&_serv_addr, sizeof(_serv_addr)) < 0)
-	{
-		if (i > 1000)
+	while (bind(_masterSocket, (struct sockaddr *)&_serv_addr, sizeof(_serv_addr)) <0)   
+	{   
+		if ( i > 1000)
 		{
-			cout << "bind error" << endl;
+			perror("bind failed");   
+			exit(EXIT_FAILURE);   
 		}
 		_serv_addr.sin_port++;
 		i++;
 	}
 
-	cout << "bind done" << endl;
-	// listen for the connection
-	if (listen(_listenfd, 10) < 0)
-	{
-		cout << "listen error" << endl;
+	cout << "bind successful" << endl;
+	
+	//try to specify maximum of 3 pending connections for the master socket  
+	if (listen(_masterSocket, 3) < 0)   
+	{   
+		perror("listen");   
+		exit(EXIT_FAILURE);   
 	}
-
+	
 	_myPort = to_string(_serv_addr.sin_port);
 
 	cout << "port number: " << _myPort << endl;
@@ -118,11 +137,15 @@ string Server::getHostname()
 	return _hostname;
 }
 
-int Server::getListenfd()
+int Server::getMasterSocket()
 {
-	return _listenfd;
+	return _masterSocket;
 }
 
+struct sockaddr_in Server::getAddr()
+{
+	return _serv_addr;
+}
 void Server::addLinkedQueue(string input)
 {
 	// add the new Server to the linkedQueues vector
