@@ -357,7 +357,9 @@ void Server::handleList(char *recv, int connfd)
 		{
 			cout << "List command forwarded to queue " << name << endl;
 			listQueue(_linkedQueues.at(name), recv, count);
-			write(connfd, count, sizeof(count));
+			string message(count);
+			message += " messages";
+			write(connfd, message.c_str(), message.length() + 1);
 		}
 		// if the queue does not exist send an error message to
 		// the client
