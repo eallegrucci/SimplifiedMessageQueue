@@ -1,8 +1,66 @@
 #include "Exchange.h"
 
-using namespace std;
+/*using namespace std;
 
-Exchange::Exchange(string name)
+Exchange::Exchange()
 {
-	_name = name;
 }
+
+vector<string> Exchange::getSubscriptions()
+{
+	return _subscriptions;
+}
+
+bool Exchange::subscriptionExists(string name)
+{
+	for (string s : _subscriptions)
+		if (s == name)
+			return true;
+	return false;
+}
+
+void Exchange::handlePublish(char *recv, int connfd)
+{
+	cout << "handlePublish" << endl;
+	// extract the message from the received input
+	const char *message = strstr(recv, "\"");
+	string command, myname, subname;
+	// vector of names to send the message to
+	istringstream iss(recv);
+	iss >> command >> myname >> subname;
+	if (subscriptionExists(subname))
+	{
+		for (Client c : _clients.at(subname))
+		{
+			int sockfd = c.getSockfd();
+			write(sockfd, message, strlen(message));
+			cout << "written" << endl;
+		}
+	}
+	else
+	{
+		cout << subname << " does not exist" << endl;
+		string m = subname + " does not exist";
+		write(connfd, m.c_str(), m.length() + 1);
+	}
+}
+
+void Exchange::handleSubscribe(Client c, char *recv)
+{
+	istringstream iss(recv);
+	string command, myname, subname;
+	iss >> command >> myname >> subname;
+
+	if (!subscriptionExists(subname))
+	{
+		cout << "new subscription " << subname << endl;
+		vector<Client> cl;
+		cl.push_back(c);
+		_clients.insert(pair<string, vector<Client>>(subname, cl));
+	}
+	else
+	{
+		cout << "new client add to subscription " << subname << endl;
+		_clients.at(subname).push_back(c);
+	}
+} */

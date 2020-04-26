@@ -17,10 +17,11 @@
 #include <sys/types.h>
 #include <cassert>
 #include <sstream>
-#include <sys/utsname.h>
+#include <mutex>
+#include <thread>
+#include <algorithm>
 #include "MessageQueue.h"
 #include "Exchange.h"
-#include "client.h"
 
 class Server {
 	std::string _name;
@@ -28,16 +29,17 @@ class Server {
 	std::string _myIP;
 	std::string _myPort;
 	MessageQueue _queue = MessageQueue();
-	//Exchange *_proxieQueue;
+	Exchange _exchange = Exchange();
 	std::map<std::string, Client> _linkedQueues;
 	bool _isExchange;
 	struct sockaddr_in _serv_addr;
-	int _listenfd;
+	int _masterSocket;
 public:
 	Server(char *&name, char *&type);
 	std::string getName();
 	std::string getHostname();
-	int getListenfd();
+	int getMasterSocket();
+	struct sockaddr_in getAddr();
 	void addLinkedQueue(std::string name);
 	void putQueue(Client c, char *input);
 	void getQueue(Client c, char *input, char *message);
@@ -46,6 +48,8 @@ public:
 	void handlePut(char *recv, int connfd);
 	void handleList(char *recv, int connfd);
 	void handleBind(char *recv, int connfd);
+	void handleSubscriber(char *recv, int connfd);
+	void handlePublisher(char *recv, int connfd);
 };
 
 using namespace std;
@@ -53,10 +57,15 @@ using namespace std;
 Server::Server(char *&name, char *&type)
 {
 	_name = name;
-	_isExchange = false;
+	if (!strcmp(type, "queue"))
+		_isExchange = false;
+	else
+		_isExchange = true;
+	
 	struct hostent *host;
 	char hostname[256];
 	char *IPbuff;
+	int opt = true;
 	gethostname(hostname, 256);
 
 	_hostname = hostname;
@@ -72,32 +81,47 @@ Server::Server(char *&name, char *&type)
 	_serv_addr.sin_port = htons(5000); 
 
 	cout << "_serv_addr set" << endl;
-	// create socket
-	if((_listenfd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
+
+	// create masterSocket
+	if ((_masterSocket = socket(AF_INET , SOCK_STREAM , 0)) == 0)
 	{
-		cout << "socket error" << endl;
+		perror("socket failed");
+		exit(EXIT_FAILURE);
 	}
-	cout << "socket created" << endl;	
+	cout << "masterSocket " << _masterSocket << endl;
+
+	if (setsockopt(_masterSocket, SOL_SOCKET, SO_REUSEADDR, (char *)&opt, sizeof(opt)) < 0)
+	{
+		perror("setsockopt");
+		exit(EXIT_FAILURE);
+	}
+
+	cout << "setsockopt" << endl;
+	cout << opt << endl;
+
 	int i = 0;
 	// while the ind is unsuccessful change the port number
 	// exit the loop once the bind is successful or after 1000 unsuccessful tries
-	while(bind(_listenfd, (struct sockaddr*)&_serv_addr, sizeof(_serv_addr)) < 0)
-	{
-		if (i > 1000)
+	while (bind(_masterSocket, (struct sockaddr *)&_serv_addr, sizeof(_serv_addr)) <0)   
+	{   
+		if ( i > 1000)
 		{
-			cout << "bind error" << endl;
+			perror("bind failed");   
+			exit(EXIT_FAILURE);   
 		}
 		_serv_addr.sin_port++;
 		i++;
 	}
 
-	cout << "bind done" << endl;
-	// listen for the connection
-	if (listen(_listenfd, 10) < 0)
-	{
-		cout << "listen error" << endl;
+	cout << "bind successful" << endl;
+	
+	//try to specify maximum of 3 pending connections for the master socket  
+	if (listen(_masterSocket, 3) < 0)   
+	{   
+		perror("listen");   
+		exit(EXIT_FAILURE);   
 	}
-
+	
 	_myPort = to_string(_serv_addr.sin_port);
 
 	cout << "port number: " << _myPort << endl;
@@ -113,11 +137,15 @@ string Server::getHostname()
 	return _hostname;
 }
 
-int Server::getListenfd()
+int Server::getMasterSocket()
 {
-	return _listenfd;
+	return _masterSocket;
 }
 
+struct sockaddr_in Server::getAddr()
+{
+	return _serv_addr;
+}
 void Server::addLinkedQueue(string input)
 {
 	// add the new Server to the linkedQueues vector
@@ -156,26 +184,11 @@ void Server::addLinkedQueue(string input)
 // specified by the client
 void Server::putQueue(Client c, char *info)
 {
-	int sockfd = 0;
-	
-	sockaddr_in s = c.getAddr();
-	// create socket
-	if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
-	{
-		cout << "socket error" << endl;
-		return;
-	}
-	
-	// connect
-	if (connect(sockfd, (struct sockaddr *)&s, sizeof(s) < 0))
-	{
-		cout << "connect error: " << strerror(errno) << endl;
-		return;
-	}
-	
+	int sockfd = c.getSockfd();
+	cout << "putQueue" << endl;
+		
 	write(sockfd, info, strlen(info));
-	
-	close(sockfd);
+	cout << "written" << endl;
 }
 
 // listQueue(Server, char *, char *)
@@ -183,28 +196,12 @@ void Server::putQueue(Client c, char *info)
 // queues and requesr the messages count of the specified queue from the client
 void Server::listQueue(Client c, char *info, char *count)
 {
-	int sockfd = 0;
-	
-	sockaddr_in s = c.getAddr();
-	// create socket
-	if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
-	{
-		cout << "socket error" << endl;
-		return;
-	}
-	
-	// connect
-	if (connect(sockfd, (struct sockaddr *)&s, sizeof(s)) < 0)
-	{
-		cout << "connect error: " << strerror(errno) << endl;
-		return;
-	}
-
+	int sockfd = c.getSockfd();
+	cout << "listQueue" << endl;
 	write(sockfd, info, strlen(info));
-	
+	cout << info << " written" << endl;
 	read(sockfd, count, sizeof(count));
-	
-	close(sockfd);
+	cout << count << " read" << endl;
 }
 
 // getQueue(Server, char *, char *)
@@ -213,36 +210,21 @@ void Server::listQueue(Client c, char *info, char *count)
 // relay it to the client
 void Server::getQueue(Client c, char *info, char *message)
 {
-	int sockfd = 0;
-	
-	struct sockaddr_in s = c.getAddr();
-
-	// create socket
-	if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
-	{
-		cout << "socket error" << endl;
-		return;
-	}
-	
-	// connect
-	if (connect(sockfd, (struct sockaddr *)&s, sizeof(s)) < 0)
-	{
-		cout << "connect error: " << strerror(errno) << endl;
-		return;
-	}
+	int sockfd = c.getSockfd();
+	cout << "getQueue" << endl;
 
 	write(sockfd, info, strlen(info));
-	
+	cout << "written" << endl;
 	char buff[4096];
 	memset(buff, 0, sizeof(buff));
 	read(sockfd, buff, sizeof(buff));
 	strcpy(message, buff);
-	
-	close(sockfd);
+	cout << "read" << endl;
 }
 
 void Server::handleGet(char *recv, int connfd)
 {
+	cout << "handleGet" << endl;
 	string str, command, name;
 	istringstream iss(recv);
 	iss >> command >> name;
@@ -250,6 +232,7 @@ void Server::handleGet(char *recv, int connfd)
 	// first message in your queue if your queue is not empty
 	if (!_isExchange && (_name == name))
 	{
+		cout << "get my queue" << endl;
 		if (_queue.containsMessages())
 		{
 			str = _queue.getMessage();
@@ -272,7 +255,7 @@ void Server::handleGet(char *recv, int connfd)
 		bool exists = false;
 		char message[4096];
 		memset(message, 0, sizeof(message));
-		
+		cout << "check other queue" << endl;
 		if (_linkedQueues.find(name) != _linkedQueues.end())
 		{
 			cout << "Get command forwarded to queue " << name << endl;
@@ -293,6 +276,7 @@ void Server::handleGet(char *recv, int connfd)
 
 void Server::handlePut(char *recv, int connfd)
 {
+	cout << "handlePut" << endl;
 	// extract the message from the received input
 	const char *message = strstr(recv, "\"");
 	string command, name;
@@ -309,12 +293,14 @@ void Server::handlePut(char *recv, int connfd)
 		names.push_back(name);
 		cout << name << endl;
 	}
+	cout << "going to loop through names" << endl;
 	for (string n : names)
 	{
 		cout << "Queue name: " << n << endl;
 		// if the name received is the name of this queue
 		if(!_isExchange && _name == n)
 		{
+			cout << "add message to me" << endl;
 			// add the message to the queue
 			_queue.addMessage(message);
 			cout << message << " added to " << _name << endl;
@@ -324,10 +310,14 @@ void Server::handlePut(char *recv, int connfd)
 			// otherwise loop through the likedQueues vector
 			// and if linkedQueues has an object with the same name
 			// send that message to that queue
+			string mes = command + " " + n + " " + message;
+			cout << mes << endl;
+			char *c = new char[mes.length() + 1];
+			strcpy(c, mes.c_str());
 			if (_linkedQueues.find(n) != _linkedQueues.end())
 			{
 				cout << "Sending to queue " << n << endl;
-				putQueue(_linkedQueues.at(n), recv);
+				putQueue(_linkedQueues.at(n), c);
 			}
 			else
 			{
@@ -339,6 +329,7 @@ void Server::handlePut(char *recv, int connfd)
 
 void Server::handleList(char *recv, int connfd)
 {
+	cout << "handleList" << endl;
 	string command, name;
 	istringstream iss(recv);
 	iss >> command >> name;
@@ -346,6 +337,7 @@ void Server::handleList(char *recv, int connfd)
 	// send the client this queue's number of message
 	if (!_isExchange && _name == name)
 	{
+		cout << "queue is me" << endl;
 		int c = _queue.getMessageCount();
 		string str;
 		stringstream out;
@@ -358,13 +350,16 @@ void Server::handleList(char *recv, int connfd)
 	// otherwise loop through the vector linkedQueues
 	else
 	{
+		cout << "check other queues" << endl;
 		bool exists = false;
 		char count[32];
 		if (_linkedQueues.find(name) != _linkedQueues.end())
 		{
 			cout << "List command forwarded to queue " << name << endl;
 			listQueue(_linkedQueues.at(name), recv, count);
-			write(connfd, count, sizeof(count));
+			string message(count);
+			message += " messages";
+			write(connfd, message.c_str(), message.length() + 1);
 		}
 		// if the queue does not exist send an error message to
 		// the client
@@ -395,6 +390,30 @@ void Server::handleBind(char *recv, int connfd)
 	write(connfd, "bound", 10);
 	cout << "wrote bound to other queue" << endl;
 	cout << name << " linked to " << _name << " successfully" << endl;	
+}
+
+void Server::handleSubscriber(char *recv, int connfd)
+{
+	if (_isExchange)
+	{
+		_exchange.handleSubscribe(recv, connfd);
+	}
+	else
+	{
+		cout << "I am not an exchange server so I can not subscribe" << endl;
+	}
+}
+
+void Server::handlePublisher(char *recv, int connfd)
+{
+	if (_isExchange)
+	{
+		_exchange.handlePublish(recv, connfd);
+	}
+	else
+	{
+		cout << "I am not an exchange server so I can not publish" << endl;
+	}
 }
 
 #endif /* SERVER_H */

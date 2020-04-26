@@ -1,15 +1,72 @@
 #include "client.h"
-#include "MessageQueue.h"
 
 using namespace std;
 
-int main(int, char *[]);
+void inputCommands(Client *c)
+{
+	cout << "thread input commands" << endl;
+	string input;
+	
+	//Reading user input once connected
+	while(1) {
+		cout << "client> ";
+		getline(cin, input);
+		
+		// handles get command
+		if (strstr(input.c_str(), "get"))
+		{
+			cout << "get" << endl;
+			c->get(input);
+		}
+		// handles the put command
+		else if (strstr(input.c_str(), "put"))
+		{
+			cout << "put" << endl;
+			c->put(input);
+		}
+		// handles list command
+		else if (strstr(input.c_str(), "list"))
+		{
+			cout << "list" << endl;
+			c->list(input);
+		}
+		// handles subscribe command
+		else if (strstr(input.c_str(), "subscribe"))
+		{
+			cout << "subscribe" << endl;
+			c->subscribe(input);
+		}
+		else if (strstr(input.c_str(), "publish"))
+		{
+			cout << "publish" << endl;
+			c->publish(input);
+		}
+		// handles inexceptable commands
+		else
+		{
+			cout << "That command does not exist" << endl;
+		}
+	}
+}
+
+void listeningToExchange(Client *c)
+{
+	cout << "thread listening to exchange" << endl;
+	char buff[4096];
+	memset(buff, 0, sizeof(buff));
+
+	while(1)
+	{
+		read(c->getSockfd(), buff, sizeof(buff));
+		cout << buff << endl;
+		memset(buff, 0, sizeof(buff));
+	}
+}
+
 
 int main(int argc, char *argv[])
 {
-	int sockfd = 0, n;
-	string message = "";
-
+	char message[4096];
 	// checking the arguments
 	if(argc != 3)
 	{
@@ -21,43 +78,18 @@ int main(int argc, char *argv[])
 
 	string ip(argv[1]), port(argv[2]);
 	Client client = Client(ip, port);
+	//Client client2 = Client(ip, port);
 	
 	cout << "Connected to IP: " << argv[1] << " with Port: " << argv[2] << endl;
+	//read(client1.getSockfd(), message, sizeof(message));
+	//cout << "message" << endl;
+	//this thread is waiting for the user to input commands
+	thread t1(inputCommands, &client);
+	// this thread is wait to read from the exchange server is is connected to
+	thread t2(listeningToExchange, &client);
 
-	string input;
-
-	char buff[4096];
-	memset(buff, 0, sizeof(buff));
-	//Reading user input once connected
-	while(1) {
-		cout << "client> ";
-		getline(cin, input);
-		
-		// handles get command
-		if (strstr(input.c_str(), "get"))
-		{
-			client.get(input);
-		}
-		// handles the put command
-		else if (strstr(input.c_str(), "put"))
-		{
-			client.put(input);
-		}
-		// handles list command
-		else if (strstr(input.c_str(), "list"))
-		{
-			client.list(input);
-		}
-		// handles inexceptable commands
-		else
-		{
-			cout << "That command does not exist" << endl;
-		}
-		// clear buff
-		memset(buff, 0, sizeof(buff));
-	}
-
-	close(sockfd);
-
+	t1.join();
+	t2.join();
+	
 	return 0;
 }

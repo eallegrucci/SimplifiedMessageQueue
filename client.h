@@ -16,6 +16,8 @@
 #include <arpa/inet.h> 
 #include <cassert>
 #include <sstream>
+#include <thread>
+#include <mutex>
 
 class Client {
 	struct sockaddr_in _serv_addr;
@@ -97,17 +99,20 @@ bool Client::isSubscribed(const string &subscription)
 
 void Client::get(string input)
 {
+	cout << "inside get" << endl;
 	char buff[4096];
+	memset(buff, 0, sizeof(buff));
 	// sends the server the command
 	write(_sockfd, input.c_str(), input.length() + 1);
 	// reads the message from the requested queue
-	read(_sockfd, buff, sizeof(buff));
+	//read(_sockfd, buff, sizeof(buff));
 	// outputs the message
-	cout << buff << endl;
+	//cout << buff << endl;
 }
 
 void Client::put(string input)
 {
+	cout << "inside put" << endl;
 	const char *message = strstr(input.c_str(), "\"");
 	// write the message to the server and the server will
 	// distribute it to the named queues it received from this client
@@ -117,21 +122,44 @@ void Client::put(string input)
 
 void Client::list(string input)
 {
+	cout << "inside list" << endl;
 	char buff[4096];
+	memset(buff, 0, sizeof(buff));
 	// sends the command to the server
 	write(_sockfd, input.c_str(), input.length() + 1);
 	// read the number of messages of the named queue from the server
-	read(_sockfd, buff, sizeof(buff));
+	cout << "written" << endl;
+	//read(_sockfd, buff, sizeof(buff));
+	//cout << "read" << endl;
 	// outputs the message count
-	cout << buff << " messages" << endl;
+	//cout << buff << " messages" << endl;
 }
 
-void Client::subscribe(std::string input)
+void Client::subscribe(string input)
 {
+	cout << "subscribe" << endl;
+	istringstream iss(input);
+	string command, exchangeName, subscription;
+	iss >> command >> exchangeName >> subscription;
+	if (!isSubscribed(subscription))
+	{
+		_subscriptions.push_back(subscription);
+		write(_sockfd, input.c_str(), input.length() + 1);
+		cout << "subscribed to " << subscription << endl;
+	}
+	else
+		cout << "already subscribed to " << subscription << endl;
 }
 
-void Client::publish(std::string input)
+void Client::publish(string input)
 {
+	cout << "publish" << endl;
+	const char *message = strstr(input.c_str(), "\"");
+	istringstream iss(input);
+	string command, exchangeName, subscription;
+	iss >> command >> exchangeName >> subscription;
+	write(_sockfd, input.c_str(), input.length() + 1);
+	cout << message << " written to " << subscription << endl;
 }
 
 #endif /* CLIENT_H */
