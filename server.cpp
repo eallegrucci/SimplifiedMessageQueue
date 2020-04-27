@@ -165,6 +165,17 @@ int main(int argc, char *argv[])
 		cout << argv[1] << argv[2] << endl;
 		return 1;
 	}
+	
+	string name(argv[3]);
+	string command1 = "touch /tmp/eallegru/data_" + name + ".tmp";
+	string command2 = "chmod 644 /tmp/eallegru/data_" + name + ".tmp";
+	const char *c1 = command1.c_str();
+	const char *c2 = command2.c_str();
+	if (!strcmp(argv[2], "queue"))
+	{
+		system(c1);
+		system(c2);
+	}
 
 	cout << "checking arguments" <<endl;
 	Server server = Server(argv[3], argv[2]);

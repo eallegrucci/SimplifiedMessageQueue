@@ -59,7 +59,7 @@ void MessageQueue::addMessage(const string &m)
 
 void MessageQueue::updateTempFile()
 {
-	string filename = "/tmp/eallegru/data_" + _name;
+	string filename = "/tmp/eallegru/data_" + _name + ".tmp";
 
 	ofstream file(filename, ios::trunc);
 	if (file.is_open())

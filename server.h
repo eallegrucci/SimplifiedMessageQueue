@@ -31,6 +31,7 @@ class Server {
 	MessageQueue _queue = MessageQueue();
 	Exchange _exchange = Exchange();
 	std::map<std::string, Client> _linkedQueues;
+	std::vector<std::string> _linkedQNames;
 	bool _isExchange;
 	struct sockaddr_in _serv_addr;
 	int _masterSocket;
@@ -168,6 +169,7 @@ void Server::addLinkedQueue(string input)
 	Client client = Client(ipAddr, portNum);
 	cout << "client add in addLinkedQueue" << endl;
 	_linkedQueues.insert(pair<string, Client>(name, client));
+	_linkedQNames.push_back(name);
 	cout << "client added to linked queue" << endl;
 	string new_input = command + " " + _name + " " + _myIP + " " + _myPort;
 	cout << new_input << endl;
@@ -189,14 +191,14 @@ void Server::putQueue(Client c, char *info)
 {
 	int sockfd = c.getSockfd();
 	cout << "putQueue" << endl;
-	write(sockfd, info, strlen(info));
-	//int n = 1;
-	//while (write(sockfd, info, strlen(info)) == -1)
-	//{
-	//	sleep(n);
-	//	if (n < 1024)
-	//		n *= 2;
-	//}
+	//write(sockfd, info, strlen(info));
+	int n = 1;
+	while (write(sockfd, info, strlen(info)) == -1)
+	{
+		sleep(n);
+		if (n < 1024)
+			n *= 2;
+	}
 	cout << "written" << endl;
 }
 
@@ -207,7 +209,13 @@ void Server::listQueue(Client c, char *info, char *count)
 {
 	int sockfd = c.getSockfd();
 	cout << "listQueue" << endl;
-	write(sockfd, info, strlen(info));
+	int n = 1;
+	while (write(sockfd, info, strlen(info)) == -1)
+	{
+		sleep(n);
+		if (n < 1024)
+			n *= 2;
+	}
 	cout << info << " written" << endl;
 	read(sockfd, count, sizeof(count));
 	cout << count << " read" << endl;
@@ -221,8 +229,13 @@ void Server::getQueue(Client c, char *info, char *message)
 {
 	int sockfd = c.getSockfd();
 	cout << "getQueue" << endl;
-
-	write(sockfd, info, strlen(info));
+	int n = 1;
+	while (write(sockfd, info, strlen(info)) == -1)
+	{
+		sleep(n);
+		if (n < 1024)
+			n *= 2;
+	}
 	cout << "written" << endl;
 	char buff[4096];
 	memset(buff, 0, sizeof(buff));
@@ -314,6 +327,31 @@ void Server::handlePut(char *recv, int connfd)
 			_queue.addMessage(message);
 			cout << message << " added to " << _name << endl;
 		}
+		else if (strstr(n.c_str(), "*"))
+		{
+			cout << "wildcard" << endl;
+			string wild = n.substr(0, n.length());
+			// if name contains n[0:len-2]
+			for (string s : _linkedQNames)
+			{
+				cout << s << endl;;
+				if (s.find( n))
+				{
+					cout << "sending wildcard" << endl;
+					// send message
+					string mes = command + " " + s + " " + message;
+					cout << mes << endl;
+					char *c = new char[mes.length() + 1];
+					strcpy(c, mes.c_str());
+					cout << c << endl;
+					if (_linkedQueues.find(s) != _linkedQueues.end())
+					{
+						cout << "Sending to queue " << s << endl;
+						putQueue(_linkedQueues.at(s), c);
+					}
+				}
+			}
+		}
 		else
 		{
 			// otherwise loop through the likedQueues vector
@@ -395,6 +433,7 @@ void Server::handleBind(char *recv, int connfd)
 	Client client = Client(ipAddr, portNum);
 	cout << "client created" << endl;
 	_linkedQueues.insert(pair<string, Client>(name, client));
+	_linkedQNames.push_back(name);
 	cout << "client added to linked queue" << endl;
 	write(connfd, "bound", 10);
 	cout << "wrote bound to other queue" << endl;
