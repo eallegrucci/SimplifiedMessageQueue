@@ -25,7 +25,6 @@ void backgroundCommands(Server *s) {
 		{
 			cout << "Command not recognized" << endl;
 		}
-		//sleep(10);
 	}
 }
 
@@ -51,20 +50,6 @@ void listeningToClient(Server *s)
 	size_t size = sizeof(addr);
 	FD_ZERO(&activefds);
 	FD_SET(masterSocket, &activefds);   
-
-//		cout << "Client socket size = " << clientSockets.size() << endl;
-//		for (int i = 0; i < clientSockets.size(); i++)
-//		{
-//		     cout << "Client loop i = " << i << endl;
-//			sd = clientSockets[i];
-//		     cout << "Client socket number = " << sd << endl;
-//			if (sd > 0) {
-//		          cout << "Added client socket " << sd << " file descriptors list..." << endl;
-//				FD_SET(sd, &readfds);
-//			}
-//			if (sd > max_sd)
-//				max_sd = sd;
-//		}
 
 	while (1)
 	{

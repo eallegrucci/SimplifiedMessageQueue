@@ -58,7 +58,10 @@ Server::Server(char *&name, char *&type)
 {
 	_name = name;
 	if (!strcmp(type, "queue"))
+	{
+		_queue.setName(_name);
 		_isExchange = false;
+	}
 	else
 		_isExchange = true;
 	
@@ -186,8 +189,14 @@ void Server::putQueue(Client c, char *info)
 {
 	int sockfd = c.getSockfd();
 	cout << "putQueue" << endl;
-		
 	write(sockfd, info, strlen(info));
+	//int n = 1;
+	//while (write(sockfd, info, strlen(info)) == -1)
+	//{
+	//	sleep(n);
+	//	if (n < 1024)
+	//		n *= 2;
+	//}
 	cout << "written" << endl;
 }
 

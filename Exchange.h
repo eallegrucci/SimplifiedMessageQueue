@@ -47,26 +47,35 @@ void Exchange::handlePublish(char *recv, int connfd)
 	string command, myname, subname;
 	// vector of names to send the message to
 	istringstream iss(recv);
-	iss >> command >> myname >> subname;
-	cout << command << endl;
-	cout << myname << endl;
-	cout << subname << endl;
-	cout << message << endl;
-	if (subscriptionExists(subname))
+	iss >> command >> myname;
+	
+	vector<string> names;
+	
+	while (iss >> subname)
 	{
-		for (int c : _clients.at(subname))
-		{
-			cout << connfd << endl;
-			cout << c << endl;
-			write(c, message, strlen(message));
-			cout << "written" << endl;
-		}
+		if (subname[0] == '"')
+			break;
+		names.push_back(subname);
 	}
-	else
+	
+	for (string n : names)
 	{
-		cout << subname << " does not exist" << endl;
-		string m = subname + " does not exist";
-		write(connfd, m.c_str(), m.length() + 1);
+		if (subscriptionExists(n))
+		{
+			for (int c : _clients.at(n))
+			{
+				cout << connfd << endl;
+				cout << c << endl;
+				write(c, message, strlen(message));
+				cout << "written" << endl;
+			}
+		}
+		else
+		{
+			cout << n << " does not exist" << endl;
+			string m = n + " does not exist";
+			write(connfd, m.c_str(), m.length() + 1);
+		}
 	}
 }
 
@@ -74,25 +83,30 @@ void Exchange::handleSubscribe(char *recv, int connfd)
 {
 	istringstream iss(recv);
 	string command, myname, subname;
-	iss >> command >> myname >> subname;
-	cout << command << endl;
-	cout << myname << endl;
-	cout << subname << endl;
-	cout << connfd << endl;
-
-	if (!subscriptionExists(subname))
+	iss >> command >> myname;
+	vector<string> names;
+	
+	while (iss >> subname)
 	{
-		cout << "new subscription " << subname << endl;
-		vector<int> client;
-		client.push_back(connfd);
-		cout << client.at(0);
-		_subscriptions.push_back(subname);
-		_clients.insert(pair<string, vector<int>>(subname, client));
+		names.push_back(subname);
 	}
-	else
+
+	for (string n : names)
 	{
-		cout << "new client add to subscription " << subname << endl;
-		_clients.at(subname).push_back(connfd);
+		if (!subscriptionExists(n))
+		{
+			cout << "new subscription " << n << endl;
+			vector<int> client;
+			client.push_back(connfd);
+			cout << client.at(0);
+			_subscriptions.push_back(n);
+			_clients.insert(pair<string, vector<int>>(n, client));
+		}
+		else
+		{
+			cout << "new client add to subscription " << n << endl;
+			_clients.at(n).push_back(connfd);
+		}
 	}
 }
 
