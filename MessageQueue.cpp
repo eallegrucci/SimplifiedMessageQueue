@@ -39,7 +39,13 @@ string MessageQueue::getMessage()
 	string m = _messages.front();
 	_messages.erase(_messages.begin());
 	_messageCount--;
+	updateTempFile();
 	return m;
+}
+
+void MessageQueue::setName(string name)
+{
+	_name = name;
 }
 
 // addMessage()
@@ -48,4 +54,22 @@ void MessageQueue::addMessage(const string &m)
 {
 	_messages.push_back(m);
 	_messageCount++;
+	updateTempFile();
+}
+
+void MessageQueue::updateTempFile()
+{
+	string filename = "/tmp/eallegru/data_" + _name + ".tmp";
+
+	ofstream file(filename, ios::trunc);
+	if (file.is_open())
+	{
+		for (string m : _messages)
+		{
+			file << m << "\n";
+		}
+		file.close();
+	}
+	else
+		cout << "unable to open file " << filename << endl;
 }
